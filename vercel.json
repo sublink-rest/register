@@ -6,50 +6,19 @@
       "use": "@vercel/node"
     },
     {
-      "src": "public/**",
+      "src": "public/*",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/api/(.*)",
+      "src": "/api/(.)",
       "dest": "server.js"
-    },
-    {
-      "src": "^/support$",
-      "dest": "server.js"
-    },
-    {
-      "src": "^/policy$",
-      "dest": "server.js"
-    },
-    {
-      "src": "^/installation$",
-      "dest": "server.js"
-    },
-    {
-      "src": "^/status$",
-      "dest": "server.js"
-    },
-    {
-      "src": "^/service$",
-      "dest": "server.js"
-    },
-    {
-      "src": "^/documentation$",
-      "dest": "server.js"
-    },
-    {
-      "src": "/static/(.*)",
-      "dest": "public/static/$1"
-    },
-    {
-      "src": "/(.+\\.[a-zA-Z]+)$",
-      "dest": "public/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "server.js"
+      "dest": "public/$1"
     }
   ]
 }
+
