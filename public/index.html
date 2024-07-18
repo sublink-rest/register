@@ -3,133 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>sublink.rest - Get Your Free Subdomain</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/2.3.0/alpine.js" defer></script>
+    <title>Sublink.rest - Subdomain Registration</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/gh/alpinejs/alpine@v2.x.x/dist/alpine.min.js" defer></script>
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body class="bg-gray-100 font-sans">
-    <div x-data="app()" class="min-h-screen flex items-center justify-center">
-        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-            <img src="logo.png" alt="sublink.rest logo" class="mx-auto mb-6">
-            <h1 class="text-2xl font-bold text-center mb-6">Get Your Free Subdomain</h1>
-            
-            <div x-show="!loggedIn" class="space-y-4">
-                <p class="text-center text-gray-600">Login with GitHub to get started</p>
-                <button @click="login" class="w-full bg-gray-800 text-white py-2 px-4 rounded hover:bg-gray-700 transition duration-200">
-                    Login with GitHub
+    <div x-data="app()" x-init="checkAuthStatus" class="min-h-screen flex flex-col">
+        <header class="bg-blue-600 text-white p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Sublink.rest</h1>
+                <nav>
+                    <template x-if="loggedIn">
+                        <button @click="logout" class="text-white hover:underline">Logout</button>
+                    </template>
+                </nav>
+            </div>
+        </header>
+
+        <main class="flex-grow container mx-auto p-4">
+            <div x-show="!loggedIn" class="max-w-md mx-auto bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold mb-4">Welcome to Sublink.rest</h2>
+                <p class="mb-4">Login with GitHub to register your subdomain.</p>
+                <button 
+                    @click="login" 
+                    class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition duration-200 flex items-center justify-center"
+                    :disabled="loading"
+                >
+                    <svg x-show="!loading" class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 0C4.477 0 0 4.477 0 10c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.341-3.369-1.341-.454-1.155-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10C20 4.477 15.523 0 10 0z" clip-rule="evenodd" />
+                    </svg>
+                    <svg x-show="loading" class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span x-text="loading ? 'Logging in...' : 'Login with GitHub'"></span>
                 </button>
+                <p x-show="error" x-text="error" class="text-red-500 mt-2"></p>
             </div>
-            
-            <div x-show="loggedIn" class="space-y-4">
-                <p class="text-center text-gray-600">Welcome, <span x-text="username"></span>!</p>
+
+            <div x-show="loggedIn" class="max-w-2xl mx-auto bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-2xl font-semibold mb-4">Welcome, <span x-text="username"></span>!</h2>
                 
-                <form @submit.prevent="registerSubdomain" class="space-y-4">
-                    <div>
-                        <label for="subdomain" class="block text-sm font-medium text-gray-700">Choose your subdomain</label>
-                        <div class="mt-1 flex rounded-md shadow-sm">
-                            <input type="text" name="subdomain" id="subdomain" x-model="subdomain" required
-                                class="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-md border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                                placeholder="your-domain-name">
-                            <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
-                                .sublink.rest
-                            </span>
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold mb-2">Register a Subdomain</h3>
+                    <form @submit.prevent="registerSubdomain">
+                        <div class="mb-4">
+                            <label for="subdomain" class="block text-sm font-medium text-gray-700">Subdomain</label>
+                            <div class="mt-1 flex rounded-md shadow-sm">
+                                <input 
+                                    type="text" 
+                                    id="subdomain"
+                                    x-model="subdomain" 
+                                    class="focus:ring-blue-500 focus:border-blue-500 flex-1 block w-full rounded-none rounded-l-md sm:text-sm border-gray-300"
+                                    placeholder="your-subdomain"
+                                    required
+                                >
+                                <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                                    .sublink.rest
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div>
-                        <label for="repo" class="block text-sm font-medium text-gray-700">Select a repository</label>
-                        <select id="repo" name="repo" x-model="selectedRepo" required
-                            class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
-                            <option value="">Select a repository</option>
-                            <template x-for="repo in repos" :key="repo">
-                                <option :value="repo" x-text="repo"></option>
-                            </template>
-                        </select>
-                    </div>
-                    
-                    <button type="submit" 
-                        class="w-full bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition duration-200">
-                        Register Subdomain
-                    </button>
-                </form>
+                        <div class="mb-4">
+                            <label for="repo" class="block text-sm font-medium text-gray-700">Repository</label>
+                            <select 
+                                id="repo"
+                                x-model="selectedRepo" 
+                                class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                required
+                            >
+                                <option value="">Select a repository</option>
+                                <template x-for="repo in repos" :key="repo">
+                                    <option :value="repo" x-text="repo"></option>
+                                </template>
+                            </select>
+                        </div>
+                        <button 
+                            type="submit" 
+                            class="w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition duration-200 flex items-center justify-center"
+                            :disabled="registering"
+                        >
+                            <svg x-show="!registering" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            <svg x-show="registering" class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span x-text="registering ? 'Registering...' : 'Register Subdomain'"></span>
+                        </button>
+                    </form>
+                    <p x-show="registrationError" x-text="registrationError" class="text-red-500 mt-2"></p>
+                    <p x-show="registrationSuccess" x-text="registrationSuccess" class="text-green-500 mt-2"></p>
+                </div>
+
+                <div class="mt-6">
+                    <h3 class="text-lg font-semibold mb-2">Your Registered Subdomains</h3>
+                    <ul class="divide-y divide-gray-200">
+                        <template x-for="domain in registeredDomains" :key="domain.subdomain">
+                            <li class="py-4 flex justify-between items-center">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900" x-text="`${domain.subdomain}.sublink.rest`"></p>
+                                    <p class="text-sm text-gray-500" x-text="domain.github_repo"></p>
+                                </div>
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800" x-text="domain.status"></span>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
             </div>
-            
-            <div x-show="showMessage" class="mt-4 p-4 rounded" :class="messageType === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'">
-                <p x-text="message"></p>
+        </main>
+
+        <footer class="bg-gray-800 text-white py-4">
+            <div class="container mx-auto text-center">
+                <p>&copy; 2024 Sublink.rest. All rights reserved.</p>
             </div>
-        </div>
+        </footer>
     </div>
 
-    <script>
-        function app() {
-            return {
-                loggedIn: false,
-                username: '',
-                subdomain: '',
-                repos: [],
-                selectedRepo: '',
-                showMessage: false,
-                message: '',
-                messageType: '',
-                
-                async login() {
-                    window.location.href = '/api/github/login';
-                },
-                
-                async init() {
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const code = urlParams.get('code');
-                    if (code) {
-                        try {
-                            const response = await fetch('/api/github/callback?code=' + code);
-                            const data = await response.json();
-                            if (data.success) {
-                                this.loggedIn = true;
-                                this.username = data.username;
-                                this.repos = data.repos;
-                            } else {
-                                this.showError('Failed to log in. Please try again.');
-                            }
-                        } catch (error) {
-                            this.showError('An error occurred. Please try again.');
-                        }
-                    }
-                },
-                
-                async registerSubdomain() {
-                    try {
-                        const response = await fetch('/api/register-subdomain', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                subdomain: this.subdomain,
-                                repo: this.selectedRepo
-                            })
-                        });
-                        const result = await response.json();
-                        if (result.success) {
-                            this.showSuccess(`Successfully registered ${this.subdomain}.sublink.rest!`);
-                        } else {
-                            this.showError(result.message || 'Failed to register subdomain. Please try again.');
-                        }
-                    } catch (error) {
-                        this.showError('An error occurred. Please try again.');
-                    }
-                },
-                
-                showSuccess(message) {
-                    this.message = message;
-                    this.messageType = 'success';
-                    this.showMessage = true;
-                },
-                
-                showError(message) {
-                    this.message = message;
-                    this.messageType = 'error';
-                    this.showMessage = true;
-                }
-            }
-        }
-    </script>
+    <script src="/js/app.js"></script>
 </body>
 </html>
