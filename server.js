@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const axios = require('axios');
 const { Octokit } = require('@octokit/rest');
@@ -8,27 +9,67 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
+const morgan = require('morgan');
+const winston = require('winston');
 
 const app = express();
 
+// Logging setup
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  defaultMeta: { service: 'sublink-rest' },
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' })
+  ]
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  logger.add(new winston.transports.Console({
+    format: winston.format.simple()
+  }));
+}
+
+app.use(morgan('combined'));
+
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://api.github.com"],
+      fontSrc: ["'self'", "https:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'self'"]
+    }
+  }
+}));
 app.use(cors());
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests from this IP, please try again later.'
 });
 app.use(limiter);
 
 app.use(express.json());
 app.use(express.static('public'));
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: process.env.NODE_ENV === 'production' }
+    cookie: { 
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      sameSite: 'lax'
+    }
 }));
 
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -49,7 +90,13 @@ const checkAuth = (req, res, next) => {
 app.get('/api/github/login', (req, res) => {
     const state = uuidv4();
     req.session.oauthState = state;
-    res.redirect(`https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&scope=repo&state=${state}`);
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${CLIENT_ID}&scope=repo&state=${state}`;
+    
+    if (req.headers.accept && req.headers.accept.includes('application/json')) {
+        res.json({ url: githubAuthUrl });
+    } else {
+        res.redirect(githubAuthUrl);
+    }
 });
 
 app.get('/api/github/callback', async (req, res) => {
@@ -82,7 +129,7 @@ app.get('/api/github/callback', async (req, res) => {
             repos: repos
         });
     } catch (error) {
-        console.error('GitHub callback error:', error.response ? error.response.data : error.message);
+        logger.error('GitHub callback error:', error);
         res.status(500).json({ success: false, message: 'Failed to authenticate with GitHub' });
     }
 });
@@ -95,12 +142,10 @@ app.post('/api/register-subdomain', checkAuth, async (req, res) => {
             return res.status(400).json({ success: false, message: 'Subdomain and repo are required' });
         }
 
-        // Validate subdomain format
         if (!/^[a-z0-9-]+$/.test(subdomain)) {
             return res.status(400).json({ success: false, message: 'Invalid subdomain format' });
         }
         
-        // Check if subdomain is available
         const existingFile = await octokit.repos.getContent({
             owner: 'sublink-rest',
             repo: 'domains',
@@ -115,7 +160,6 @@ app.post('/api/register-subdomain', checkAuth, async (req, res) => {
             headers: { Authorization: `token ${req.session.accessToken}` }
         });
 
-        // Create JSON file in the domains folder
         await octokit.repos.createOrUpdateFileContents({
             owner: 'sublink-rest',
             repo: 'domains',
@@ -131,7 +175,7 @@ app.post('/api/register-subdomain', checkAuth, async (req, res) => {
 
         res.json({ success: true, message: 'Subdomain registered successfully' });
     } catch (error) {
-        console.error('Subdomain registration error:', error.response ? error.response.data : error.message);
+        logger.error('Subdomain registration error:', error);
         res.status(500).json({ success: false, message: 'Failed to register subdomain' });
     }
 });
@@ -150,18 +194,15 @@ app.get('/installation', (req, res) => {
 
 app.get('/status', async (req, res) => {
     try {
-        // Check GitHub API status
         const githubStatus = await axios.get('https://www.githubstatus.com/api/v2/status.json');
-        
-        // Check your own API status
-        const apiStatus = { status: 'operational' }; // Replace with actual status check
+        const apiStatus = { status: 'operational' };
 
         res.json({
             github: githubStatus.data,
             api: apiStatus
         });
     } catch (error) {
-        console.error('Status check error:', error);
+        logger.error('Status check error:', error);
         res.status(500).json({ error: 'Failed to retrieve status' });
     }
 });
@@ -174,7 +215,6 @@ app.get('/documentation', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'docs.html'));
 });
 
-// GitHub Marketplace Webhook
 app.post('/api/github/webhook', (req, res) => {
     const signature = req.headers['x-hub-signature-256'];
     const payload = JSON.stringify(req.body);
@@ -183,7 +223,7 @@ app.post('/api/github/webhook', (req, res) => {
 
     if (signature === digest) {
         const event = req.headers['x-github-event'];
-        console.log('Received valid webhook:', event);
+        logger.info('Received valid webhook:', event);
         
         switch (event) {
             case 'marketplace_purchase':
@@ -196,44 +236,39 @@ app.post('/api/github/webhook', (req, res) => {
                 handleMarketplaceChange(req.body);
                 break;
             default:
-                console.log('Unhandled event type:', event);
+                logger.info('Unhandled event type:', event);
         }
 
         res.status(200).send('Webhook received successfully');
     } else {
-        console.error('Invalid webhook signature');
+        logger.error('Invalid webhook signature');
         res.status(401).send('Unauthorized');
     }
 });
 
 function handleMarketplacePurchase(data) {
-    // Implement logic for new purchases
-    console.log('New purchase:', data);
-    // e.g., Activate user account, send welcome email, etc.
+    logger.info('New purchase:', data);
+    // Implement purchase logic
 }
 
 function handleMarketplaceCancellation(data) {
-    // Implement logic for cancellations
-    console.log('Cancellation:', data);
-    // e.g., Deactivate user account, send feedback survey, etc.
+    logger.info('Cancellation:', data);
+    // Implement cancellation logic
 }
 
 function handleMarketplaceChange(data) {
-    // Implement logic for plan changes
-    console.log('Plan changed:', data);
-    // e.g., Upgrade/downgrade user account, adjust limits, etc.
+    logger.info('Plan changed:', data);
+    // Implement plan change logic
 }
 
-// Error handling middleware
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    logger.error(err.stack);
     res.status(500).send('Something broke!');
 });
 
-// Catch-all route for React app
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));
