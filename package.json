@@ -1,0 +1,15 @@
+{
+  "name": "sublink-rest",
+  "version": "1.0.0",
+  "description": "Subdomain registration system for sublink.rest",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "axios": "^0.21.1",
+    "@octokit/rest": "^18.5.3",
+    "express-session": "^1.17.2"
+  }
+}
