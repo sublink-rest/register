@@ -1,15 +1,42 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server.js",
-      "use": "@vercel/node"
+  "env": {
+    "CLIENT_ID": "@client_id",
+    "CLIENT_SECRET": "@client_secret",
+    "MY_GIT_TOKEN": "@my_git_token",
+    "SESSION_SECRET": "@session_secret",
+    "WEBHOOK_SECRET": "@webhook_secret"
+  },
+  "build": {
+    "env": {
+      "CLIENT_ID": "@client_id",
+      "CLIENT_SECRET": "@client_secret",
+      "MY_GIT_TOKEN": "@my_git_token",
+      "SESSION_SECRET": "@session_secret",
+      "WEBHOOK_SECRET": "@webhook_secret"
     }
-  ],
+  },
+  "functions": {
+    "api/*.js": {
+      "runtime": "vercel/node"
+    }
+  },
   "routes": [
     {
       "src": "/api/(.*)",
       "dest": "server.js"
+    },
+    {
+      "src": "^/(support|policy|installation|status|service|documentation)$",
+      "dest": "server.js"
+    },
+    {
+      "src": "/static/(.*)",
+      "dest": "public/static/$1"
+    },
+    {
+      "src": "/(.+\\.[a-zA-Z]+)$",
+      "dest": "public/$1"
     },
     {
       "src": "/(.*)",

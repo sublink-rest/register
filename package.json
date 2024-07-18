@@ -10,6 +10,16 @@
     "express": "^4.17.1",
     "axios": "^0.21.1",
     "@octokit/rest": "^18.5.3",
-    "express-session": "^1.17.2"
+    "express-session": "^1.17.2",
+    "helmet": "^4.6.0",
+    "cors": "^2.8.5",
+    "express-rate-limit": "^5.3.0",
+    "uuid": "^8.3.2",
+    "dotenv": "^10.0.0",
+    "morgan": "^1.10.0",
+    "winston": "^3.3.3"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
