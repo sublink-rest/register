@@ -15,7 +15,10 @@ function app() {
         checkAuthStatus() {
             this.loading = true;
             fetch('/api/auth/status')
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to check authentication status');
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) {
                         this.loggedIn = true;
@@ -26,6 +29,7 @@ function app() {
                 })
                 .catch(err => {
                     console.error(err);
+                    this.error = 'Failed to check authentication status';
                 })
                 .finally(() => {
                     this.loading = false;
@@ -35,7 +39,10 @@ function app() {
         login() {
             this.loading = true;
             fetch('/api/github/login')
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to initiate login');
+                    return res.json();
+                })
                 .then(data => {
                     window.location.href = data.url;
                 })
@@ -50,7 +57,8 @@ function app() {
 
         logout() {
             fetch('/api/github/logout')
-                .then(() => {
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to logout');
                     this.loggedIn = false;
                     this.username = '';
                     this.repos = [];
@@ -64,7 +72,10 @@ function app() {
 
         fetchRepos() {
             fetch('/api/github/repos')
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch repositories');
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) {
                         this.repos = data.repos;
@@ -91,7 +102,10 @@ function app() {
                     repo: this.selectedRepo
                 })
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to register subdomain');
+                return res.json();
+            })
             .then(data => {
                 if (data.success) {
                     this.registrationSuccess = 'Subdomain registered successfully';
@@ -111,7 +125,10 @@ function app() {
 
         fetchRegisteredDomains() {
             fetch('/api/registered-domains')
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) throw new Error('Failed to fetch registered domains');
+                    return res.json();
+                })
                 .then(data => {
                     if (data.success) {
                         this.registeredDomains = data.domains;
