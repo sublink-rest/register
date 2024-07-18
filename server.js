@@ -8,14 +8,14 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 app.use(session({
-    secret: 'your-secret-key',
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
     resave: false,
     saveUninitialized: true,
 }));
 
-const CLIENT_ID = 'Ov23liw7smh4ciFjfcpT';
-const CLIENT_SECRET = '9155bdd3de99838c2f199c05a7bae13f69029261';
-const GITHUB_TOKEN = 'YOUR_GITHUB_PERSONAL_ACCESS_TOKEN';
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const GITHUB_TOKEN = process.env.MY_GIT_TOKEN;
 
 const octokit = new Octokit({ auth: GITHUB_TOKEN });
 
@@ -53,6 +53,7 @@ app.get('/api/github/callback', async (req, res) => {
             repos: repos
         });
     } catch (error) {
+        console.error('GitHub callback error:', error);
         res.status(500).json({ success: false, message: 'Failed to authenticate with GitHub' });
     }
 });
@@ -96,6 +97,7 @@ app.post('/api/register-subdomain', async (req, res) => {
 
         res.json({ success: true, message: 'Subdomain registered successfully' });
     } catch (error) {
+        console.error('Subdomain registration error:', error);
         res.status(500).json({ success: false, message: 'Failed to register subdomain' });
     }
 });
