@@ -1,0 +1,16 @@
+/* Custom styles to complement Tailwind CSS */
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Add any other custom styles here */
