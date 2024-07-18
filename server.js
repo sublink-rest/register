@@ -87,6 +87,15 @@ const checkAuth = (req, res, next) => {
     next();
 };
 
+// Endpoint to check authentication status
+app.get('/api/auth/status', checkAuth, (req, res) => {
+    res.json({
+        success: true,
+        message: 'Authenticated',
+        user: req.session.user || null
+    });
+});
+
 app.get('/api/github/login', (req, res) => {
     const state = uuidv4();
     req.session.oauthState = state;
@@ -118,6 +127,8 @@ app.get('/api/github/callback', async (req, res) => {
         const userResponse = await axios.get('https://api.github.com/user', {
             headers: { Authorization: `token ${accessToken}` }
         });
+        req.session.user = userResponse.data;
+
         const reposResponse = await axios.get('https://api.github.com/user/repos', {
             headers: { Authorization: `token ${accessToken}` }
         });
