@@ -3,80 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register Your sublink.rest Subdomain</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        .container {
-            max-width: 600px;
-            margin: auto;
-            background: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-        form {
-            display: flex;
-            flex-direction: column;
-        }
-        label {
-            margin-top: 10px;
-        }
-        input[type="text"], input[type="url"] {
-            padding: 8px;
-            margin-top: 5px;
-        }
-        button {
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            padding: 10px;
-            margin-top: 20px;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-    </style>
+    <title>sublink.rest - Get Your Free Subdomain</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/2.3.0/alpine.js" defer></script>
 </head>
-<body>
-    <div class="container">
-        <h1>Register Your sublink.rest Subdomain</h1>
-        <form id="subdomainForm">
-            <label for="subdomain">Choose your subdomain:</label>
-            <input type="text" id="subdomain" name="subdomain" required placeholder="your-domain-name">
-            <span>.sublink.rest</span>
-
-            <label for="github">GitHub Repository URL:</label>
-            <input type="url" id="github" name="github" required placeholder="https://github.com/username/repo">
-
-            <button type="submit">Register Subdomain</button>
-        </form>
+<body class="bg-gray-100 font-sans">
+    <div x-data="app()" class="min-h-screen flex items-center justify-center">
+        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+            <img src="/api/placeholder/200/50" alt="sublink.rest logo" class="mx-auto mb-6">
+            <h1 class="text-2xl font-bold text-center mb-6">Get Your Free Subdomain</h1>
+            
+            <div x-show="!loggedIn" class="space-y-4">
+                <p class="text-center text-gray-600">Login with GitHub to get started</p>
+                <button @click="login" class="w-full bg-gray-800 text-white py-2 px-4 rounded hover:bg-gray-700 transition duration-200">
+                    Login with GitHub
+                </button>
+            </div>
+            
+            <div x-show="loggedIn" class="space-y-4">
+                <p class="text-center text-gray-600">Welcome, <span x-text="username"></span>!</p>
+                
+                <form @submit.prevent="registerSubdomain" class="space-y-4">
+                    <div>
+                        <label for="subdomain" class="block text-sm font-medium text-gray-700">Choose your subdomain</label>
+                        <div class="mt-1 flex rounded-md shadow-sm">
+                            <input type="text" name="subdomain" id="subdomain" x-model="subdomain" required
+                                class="flex-1 min-w-0 block w-full px-3 py-2 rounded-l-md border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                placeholder="your-domain-name">
+                            <span class="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                                .sublink.rest
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="repo" class="block text-sm font-medium text-gray-700">Select a repository</label>
+                        <select id="repo" name="repo" x-model="selectedRepo" required
+                            class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            <option value="">Select a repository</option>
+                            <template x-for="repo in repos" :key="repo">
+                                <option :value="repo" x-text="repo"></option>
+                            </template>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" 
+                        class="w-full bg-indigo-600 text-white py-2 px-4 rounded hover:bg-indigo-700 transition duration-200">
+                        Register Subdomain
+                    </button>
+                </form>
+            </div>
+            
+            <div x-show="showMessage" class="mt-4 p-4 rounded" :class="messageType === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'">
+                <p x-text="message"></p>
+            </div>
+        </div>
     </div>
 
     <script>
-        document.getElementById('subdomainForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const subdomain = document.getElementById('subdomain').value;
-            const github = document.getElementById('github').value;
-            
-            // Here you would typically send this data to your server
-            console.log('Subdomain:', subdomain);
-            console.log('GitHub URL:', github);
-            
-            // For now, we'll just show an alert
-            alert(`Thank you for registering ${subdomain}.sublink.rest!\nWe'll connect it to ${github} soon.`);
-        });
+        function app() {
+            return {
+                loggedIn: false,
+                username: '',
+                subdomain: '',
+                repos: [],
+                selectedRepo: '',
+                showMessage: false,
+                message: '',
+                messageType: '',
+                
+                async login() {
+                    window.location.href = '/api/github/login';
+                },
+                
+                async init() {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const code = urlParams.get('code');
+                    if (code) {
+                        try {
+                            const response = await fetch('/api/github/callback?code=' + code);
+                            const data = await response.json();
+                            if (data.success) {
+                                this.loggedIn = true;
+                                this.username = data.username;
+                                this.repos = data.repos;
+                            } else {
+                                this.showError('Failed to log in. Please try again.');
+                            }
+                        } catch (error) {
+                            this.showError('An error occurred. Please try again.');
+                        }
+                    }
+                },
+                
+                async registerSubdomain() {
+                    try {
+                        const response = await fetch('/api/register-subdomain', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                subdomain: this.subdomain,
+                                repo: this.selectedRepo
+                            })
+                        });
+                        const result = await response.json();
+                        if (result.success) {
+                            this.showSuccess(`Successfully registered ${this.subdomain}.sublink.rest!`);
+                        } else {
+                            this.showError(result.message || 'Failed to register subdomain. Please try again.');
+                        }
+                    } catch (error) {
+                        this.showError('An error occurred. Please try again.');
+                    }
+                },
+                
+                showSuccess(message) {
+                    this.message = message;
+                    this.messageType = 'success';
+                    this.showMessage = true;
+                },
+                
+                showError(message) {
+                    this.message = message;
+                    this.messageType = 'error';
+                    this.showMessage = true;
+                }
+            }
+        }
     </script>
 </body>
 </html>
