@@ -144,6 +144,57 @@ app.get('/api/github/callback', async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to authenticate with GitHub' });
     }
 });
+// Endpoint for logging out
+app.get('/api/github/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            logger.error('Logout error:', err);
+            return res.status(500).json({ success: false, message: 'Failed to logout' });
+        }
+        res.json({ success: true, message: 'Logged out successfully' });
+    });
+});
+
+// Endpoint to get the list of repos for the logged-in user
+app.get('/api/github/repos', checkAuth, async (req, res) => {
+    try {
+        const reposResponse = await axios.get('https://api.github.com/user/repos', {
+            headers: { Authorization: `token ${req.session.accessToken}` }
+        });
+        const repos = reposResponse.data.map(repo => repo.name);
+        res.json({ success: true, repos: repos });
+    } catch (error) {
+        logger.error('Failed to fetch repositories:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch repositories' });
+    }
+});
+
+// Endpoint to get registered domains for the logged-in user
+app.get('/api/registered-domains', checkAuth, async (req, res) => {
+    try {
+        const userResponse = await axios.get('https://api.github.com/user', {
+            headers: { Authorization: `token ${req.session.accessToken}` }
+        });
+        const user = userResponse.data.login;
+
+        const contentResponse = await octokit.repos.getContent({
+            owner: 'sublink-rest',
+            repo: 'domains',
+            path: ''
+        });
+
+        const domains = contentResponse.data
+            .filter(file => file.name.endsWith('.sublink.rest.json'))
+            .map(file => file.name.replace('.sublink.rest.json', ''));
+
+        const userDomains = domains.filter(domain => domain.includes(user));
+
+        res.json({ success: true, domains: userDomains });
+    } catch (error) {
+        logger.error('Failed to fetch registered domains:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch registered domains' });
+    }
+});
 
 app.post('/api/register-subdomain', checkAuth, async (req, res) => {
     try {
