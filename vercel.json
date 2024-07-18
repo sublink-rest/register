@@ -16,27 +16,7 @@
       "dest": "server.js"
     },
     {
-      "src": "^/support$",
-      "dest": "server.js"
-    },
-    {
-      "src": "^/policy$",
-      "dest": "server.js"
-    },
-    {
-      "src": "^/installation$",
-      "dest": "server.js"
-    },
-    {
-      "src": "^/status$",
-      "dest": "server.js"
-    },
-    {
-      "src": "^/service$",
-      "dest": "server.js"
-    },
-    {
-      "src": "^/documentation$",
+      "src": "^/(support|policy|installation|status|service|documentation)$",
       "dest": "server.js"
     },
     {
