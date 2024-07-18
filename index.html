@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register Your sublink.rest Subdomain</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-top: 10px;
+        }
+        input[type="text"], input[type="url"] {
+            padding: 8px;
+            margin-top: 5px;
+        }
+        button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Register Your sublink.rest Subdomain</h1>
+        <form id="subdomainForm">
+            <label for="subdomain">Choose your subdomain:</label>
+            <input type="text" id="subdomain" name="subdomain" required placeholder="your-domain-name">
+            <span>.sublink.rest</span>
+
+            <label for="github">GitHub Repository URL:</label>
+            <input type="url" id="github" name="github" required placeholder="https://github.com/username/repo">
+
+            <button type="submit">Register Subdomain</button>
+        </form>
+    </div>
+
+    <script>
+        document.getElementById('subdomainForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const subdomain = document.getElementById('subdomain').value;
+            const github = document.getElementById('github').value;
+            
+            // Here you would typically send this data to your server
+            console.log('Subdomain:', subdomain);
+            console.log('GitHub URL:', github);
+            
+            // For now, we'll just show an alert
+            alert(`Thank you for registering ${subdomain}.sublink.rest!\nWe'll connect it to ${github} soon.`);
+        });
+    </script>
+</body>
+</html>
